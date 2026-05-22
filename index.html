@@ -1,12 +1,184 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link reel="stylesheet" href="style.css">
-    <title>bryan</title>
+    <title>Usuários</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    
+    <h2>Criar Usuário</h2>
+
+    <input type="text" id="name" placeholder="Nome (apenas letras)" />
+    <input type="email" id="email" placeholder="Email (ex: nome@email.com)" />
+    <input type="password" id="password" placeholder="Senha" />
+    <button onclick="criarUsuario()">Criar</button>
+    <p id="mensagem"></p>
+
+    <h2>Usuários Cadastrados</h2>
+    <button onclick="listarUsuarios()">Atualizar lista</button>
+    <div id="lista"></div>
+
+    <script>
+        const API = "http://localhost:3333"
+
+        function validarNome(nome) {
+            return /^[a-zA-ZÀ-ÿ\s]+$/.test(nome.trim())
+        }
+
+        function validarEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+        }
+
+        async function criarUsuario() {
+            const nameInput = document.getElementById("name")
+            const emailInput = document.getElementById("email")
+            const passwordInput = document.getElementById("password")
+            const mensagem = document.getElementById("mensagem")
+
+            const name = nameInput.value
+            const email = emailInput.value
+            const password = passwordInput.value
+
+            // Limpa erros anteriores
+            nameInput.classList.remove("invalido")
+            emailInput.classList.remove("invalido")
+            mensagem.className = ""
+            mensagem.textContent = ""
+
+            if (!validarNome(name)) {
+                nameInput.classList.add("invalido")
+                mensagem.className = "erro"
+                mensagem.textContent = "Nome deve conter apenas letras."
+                return
+            }
+
+            if (!validarEmail(email)) {
+                emailInput.classList.add("invalido")
+                mensagem.className = "erro"
+                mensagem.textContent = "Email inválido. Use o formato nome@email.com"
+                return
+            }
+
+            if (!password.trim()) {
+                passwordInput.classList.add("invalido")
+                mensagem.className = "erro"
+                mensagem.textContent = "Senha é obrigatória."
+                return
+            }
+
+            const response = await fetch(`${API}/usuarios`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, email, password })
+            })
+
+            const data = await response.json()
+
+            if (!response.ok) {
+                mensagem.className = "erro"
+                mensagem.textContent = data.erro
+            } else {
+                mensagem.className = ""
+                mensagem.textContent = `Usuário "${data.name}" criado com sucesso!`
+                nameInput.value = ""
+                emailInput.value = ""
+                passwordInput.value = ""
+                listarUsuarios()
+            }
+        }
+
+        async function listarUsuarios() {
+            const response = await fetch(`${API}/usuarios`)
+            const usuarios = await response.json()
+            const lista = document.getElementById("lista")
+
+            if (usuarios.length === 0) {
+                lista.innerHTML = "<p>Nenhum usuário cadastrado.</p>"
+                return
+            }
+
+            lista.innerHTML = usuarios.map(u => `
+                <div class="usuario" id="usuario-${u.id}">
+                    <strong>${u.name}</strong> — ${u.email}<br>
+                    <small>ID: ${u.id} | Criado em: ${new Date(u.criadoEm).toLocaleString()}</small>
+
+                    <div class="campos-edicao" id="edicao-${u.id}">
+                        <input type="text" id="edit-name-${u.id}" placeholder="Novo nome (apenas letras)" value="${u.name}" />
+                        <input type="email" id="edit-email-${u.id}" placeholder="Novo email" value="${u.email}" />
+                        <input type="password" id="edit-password-${u.id}" placeholder="Nova senha (opcional)" />
+                        <p class="erro" id="erro-edicao-${u.id}"></p>
+                    </div>
+
+                    <div class="acoes">
+                        <button class="btn-editar" onclick="toggleEdicao(${u.id})">Editar</button>
+                        <button class="btn-salvar" id="btn-salvar-${u.id}" style="display:none" onclick="editarUsuario(${u.id})">Salvar</button>
+                        <button class="btn-deletar" onclick="deletarUsuario(${u.id})">Deletar</button>
+                    </div>
+                </div>
+            `).join("")
+        }
+
+        function toggleEdicao(id) {
+            const campos = document.getElementById(`edicao-${id}`)
+            const btnSalvar = document.getElementById(`btn-salvar-${id}`)
+            const visivel = campos.style.display === "block"
+            campos.style.display = visivel ? "none" : "block"
+            btnSalvar.style.display = visivel ? "none" : "inline-block"
+        }
+
+        async function editarUsuario(id) {
+            const nameInput = document.getElementById(`edit-name-${id}`)
+            const emailInput = document.getElementById(`edit-email-${id}`)
+            const passwordInput = document.getElementById(`edit-password-${id}`)
+            const erroEdicao = document.getElementById(`erro-edicao-${id}`)
+
+            const name = nameInput.value
+            const email = emailInput.value
+            const password = passwordInput.value
+
+            erroEdicao.textContent = ""
+            nameInput.classList.remove("invalido")
+            emailInput.classList.remove("invalido")
+
+            if (!validarNome(name)) {
+                nameInput.classList.add("invalido")
+                erroEdicao.textContent = "Nome deve conter apenas letras."
+                return
+            }
+
+            if (!validarEmail(email)) {
+                emailInput.classList.add("invalido")
+                erroEdicao.textContent = "Email inválido. Use o formato nome@email.com"
+                return
+            }
+
+            const body = { name, email }
+            if (password.trim()) body.password = password
+
+            const response = await fetch(`${API}/usuarios/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body)
+            })
+
+            if (response.ok) {
+                listarUsuarios()
+            }
+        }
+
+        async function deletarUsuario(id) {
+            if (!confirm("Tem certeza que deseja deletar este usuário?")) return
+
+            const response = await fetch(`${API}/usuarios/${id}`, {
+                method: "DELETE"
+            })
+
+            if (response.ok) {
+                listarUsuarios()
+            }
+        }
+
+        listarUsuarios()
+    </script>
 </body>
 </html>
