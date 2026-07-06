@@ -23,10 +23,14 @@ A simple system to register, list, edit, and delete users, with encrypted passwo
 
 1. Install dependencies:
 
+```bash
 npm install express bcrypt cors
+```
 
 2. Start the server:
 
+```bash
 node server.js
+```
 
 3. Open the index.html file in your browser.
