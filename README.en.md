@@ -33,4 +33,4 @@ npm install express bcrypt cors
 node server.js
 ```
 
-3. Open the index.html file in your browser.
+3. Open the `index.html` file in your browser.
