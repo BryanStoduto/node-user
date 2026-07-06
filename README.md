@@ -1,3 +1,5 @@
+<p align="center"> <a href="./README.md">🇧🇷 Portuguese</a> | <a href="./README.en.md">🇺🇸 English</a> </p>
+
 # Sistema de Cadastro de Usuários
  
 Sistema simples para cadastrar, listar, editar e deletar usuários, com senhas criptografadas.
